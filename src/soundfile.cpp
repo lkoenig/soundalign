@@ -28,11 +28,11 @@ SoundFile::~SoundFile()
     }
 }
 
-std::vector<float>&& SoundFile::getFrame(size_t length)
+std::vector<float> SoundFile::getFrame(size_t length)
 {
     std::vector<float> frame(length);
     sf_readf_float(soundfile_, frame.data(), length);
 
-    return std::move(frame);
+    return frame;
 }
 

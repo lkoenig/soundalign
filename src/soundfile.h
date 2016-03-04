@@ -20,7 +20,7 @@ public:
         return file_info_.frames;
     }
 
-    std::vector<float> && getFrame(size_t length);
+    std::vector<float> getFrame(size_t length);
 
     virtual ~SoundFile();
 };
