@@ -10,7 +10,6 @@ class SoundFile
     SF_INFO file_info_;
 
 public:
-    SoundFile();
     SoundFile(std::string filename);
 
     int getSampleRate() {

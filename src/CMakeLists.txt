@@ -3,7 +3,6 @@ set(SOUNDALIGN_SRC
   main.cpp
   soundfile.cpp
   soundfile.h
-  circular_buffer.cpp
   circular_buffer.h
   feature_extractor.h
   feature_extractor.cpp
@@ -12,4 +11,6 @@ set(SOUNDALIGN_SRC
 
 
 add_executable(soundalign ${SOUNDALIGN_SRC})
+set_property(TARGET soundalign PROPERTY CXX_STANDARD 11)
+
 target_link_libraries(soundalign kiss_fft ${LIBSNDFILE_LIBRARY})

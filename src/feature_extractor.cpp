@@ -1,3 +1,5 @@
+#include <memory>
+
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
@@ -13,7 +15,7 @@ PSDFeature::PSDFeature(std::shared_ptr<SoundFile> file, float window_length_ms, 
     , window_length_ms_(window_length_ms)
     , step_ms_(step)
 {
-    buffer_ = std::make_unique< CircularBuffer<float> >((size_t) (window_length_ms_ * soundfile_->getSampleRate()));
+    buffer_ = std::unique_ptr< CircularBuffer<float> >( new CircularBuffer<float>((size_t) (window_length_ms_ * soundfile_->getSampleRate())));
     fft_config_ = kiss_fftr_alloc(kNFFT, 0, NULL, 0);
 }
 

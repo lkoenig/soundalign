@@ -15,13 +15,7 @@ static const int kNFFT = 1024;
 
 using namespace Eigen;
 
-SoundFile::SoundFile()
-    : soundfile_(nullptr)
-{
-}
-
 SoundFile::SoundFile(std::string filename) 
-    : SoundFile()
 {
     
     soundfile_ = sf_open(filename.c_str(), SFM_READ, &file_info_);
