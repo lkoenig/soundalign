@@ -13,7 +13,7 @@ public:
     CircularBuffer(size_t size);
     ~CircularBuffer() {};
 
-    void append(std::vector<T> &novelty);
+    void append(const std::vector<T> &novelty);
     T* data();
 };
 
@@ -28,7 +28,7 @@ CircularBuffer<T>::CircularBuffer(size_t size)
 }
 
 template<class T>
-void CircularBuffer<T>::append(std::vector<T> &novelty)
+void CircularBuffer<T>::append(const std::vector<T> &novelty)
 {
     assert(novelty.size() <= buffer_.size());
     size_t last = buffer_.size() - novelty.size();
