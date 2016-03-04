@@ -20,7 +20,7 @@ public:
     PSDFeature(std::shared_ptr<SoundFile> file, float window_length_s, float overlap_s);
     ~PSDFeature();
 
-    Eigen::MatrixXf descriptors();
+    virtual Eigen::MatrixXf descriptors();
 
 
 private:

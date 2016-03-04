@@ -8,6 +8,7 @@ class CircularBuffer {
 
 public:
     CircularBuffer(size_t size);
+    ~CircularBuffer() {};
 
     void append(std::vector<T> novelty);
     T* data();
