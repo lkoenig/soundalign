@@ -14,6 +14,9 @@ public:
     ~CircularBuffer() {};
 
     void append(const std::vector<T> &novelty);
+    auto begin();
+    auto end();
+
     T* data();
 };
 
@@ -45,6 +48,19 @@ T * CircularBuffer<T>::data()
 {
     return buffer_.data();
 } 
+
+
+template<class T>
+auto CircularBuffer<T>::begin()
+{
+    return buffer_.begin();
+}
+
+template<class T>
+auto CircularBuffer<T>::end()
+{
+    return buffer_.end();
+}
 
 
 
