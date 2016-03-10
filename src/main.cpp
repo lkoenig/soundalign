@@ -8,6 +8,14 @@
 #include "feature_extractor.h"
 
 
+template<typename T> T min(T a, T b, T c) {
+    if (a < b && a < c) return a;
+    if (b < a && b < c) return b;
+    if (c < a && c < b) return c;
+    assert(0 && "Should never reach that part");
+    return 0;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -27,6 +35,26 @@ int main(int argc, char **argv)
     total_norm = total_norm.array().sqrt();
 
     Eigen::MatrixXf correlation = (ref_desc.transpose() * deg_desc).array() / total_norm.array();
+
+    
+    Eigen::MatrixXf gamma = Eigen::MatrixXf::Zero(correlation.rows(), correlation.cols());
+    for (int n = 1; n < correlation.rows(); n++) {
+        gamma(n, 0) = 1e45;
+    }
+    for (int m = 1; m < correlation.cols(); m++) {
+        gamma(0, m) = 1e45;
+    }
+    
+    assert( (gamma(0, 0) == 0.f) );
+
+    for (int n = 1; n < correlation.cols(); n++) {
+        for (int m = 1; m < correlation.rows(); m++) {
+            gamma(n,m) = correlation(n, m) + min(gamma(n-1, m), gamma(n-1, m-1), gamma(n, m-1));
+        }
+    }
+
+    // Traceback
+
     return 0;
 }
 
