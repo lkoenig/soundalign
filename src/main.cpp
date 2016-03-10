@@ -21,9 +21,12 @@ int main(int argc, char **argv)
     Eigen::MatrixXf ref_desc = ref_descriptors->descriptors();
     Eigen::MatrixXf deg_desc = ref_descriptors->descriptors();
     
-    Eigen::MatrixXf correlation = ref_desc.transpose() * deg_desc;
-    
-    std::cout << correlation;
+    Eigen::VectorXf ref_norm = ref_desc.colwise().squaredNorm();
+    Eigen::VectorXf deg_norm = deg_desc.colwise().squaredNorm();
+    Eigen::MatrixXf total_norm = ref_norm * deg_norm.transpose();
+    total_norm = total_norm.array().sqrt();
+
+    Eigen::MatrixXf correlation = (ref_desc.transpose() * deg_desc).array() / total_norm.array();
     return 0;
 }
 
