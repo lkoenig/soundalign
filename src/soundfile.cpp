@@ -1,25 +1,20 @@
-#include <iostream>
+#include <stdint.h>
+#include <assert.h>
+#include <string.h>
+
 #include <vector>
-#include <cstdint>
 
 #include "soundfile.h"
 
 #include "sndfile.h"
 
-#include <kiss_fftr.h>
-
-#include <Eigen/Core>
-#include <Eigen/Dense>
-
-static const int kNFFT = 1024;
-
-using namespace Eigen;
 
 SoundFile::SoundFile(std::string filename)
     : soundfile_(nullptr)
 {
     soundfile_ = sf_open(filename.c_str(), SFM_READ, &file_info_);
     assert(soundfile_ != nullptr);
+    assert(file_info_.channels == 1); // We do not support multichannel audio files
 }
 
 SoundFile::~SoundFile()
@@ -29,11 +24,9 @@ SoundFile::~SoundFile()
     }
 }
 
-std::vector<float> SoundFile::getFrame(size_t length)
+size_t SoundFile::getFrame(size_t length, float* frame)
 {
-    std::vector<float> frame(length);
-    sf_readf_float(soundfile_, frame.data(), length);
-
-    return frame;
+    size_t count = 0;
+    count = sf_readf_float(soundfile_, frame, length);
+    return count;
 }
-

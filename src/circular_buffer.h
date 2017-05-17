@@ -1,6 +1,4 @@
-#ifndef CIRCULAR_BUFFER_H
-#define CIRCULAR_BUFFER_H
-
+#pragma once
 #include <cstddef>
 #include <vector>
 #include <memory>
@@ -14,8 +12,10 @@ public:
     ~CircularBuffer() {};
 
     void append(const std::vector<T> &novelty);
-    auto begin();
-    auto end();
+    void append(const T* novelty, size_t count);
+
+    size_t size() {return buffer_.size(); }
+    size_t sizeInBytes() {return buffer_.size() * sizeof(T); }
 
     T* data();
 };
@@ -33,14 +33,20 @@ CircularBuffer<T>::CircularBuffer(size_t size)
 template<class T>
 void CircularBuffer<T>::append(const std::vector<T> &novelty)
 {
-    assert(novelty.size() <= buffer_.size());
-    size_t last = buffer_.size() - novelty.size();
+    CircularBuffer<T>::append(novelty.data(), novelty.size());
+}
+
+template<class T>
+void CircularBuffer<T>::append(const T* novelty, size_t count)
+{
+    assert(count <= buffer_.size());
+    size_t last = buffer_.size() - count;
     
     // Move the end of the buffer to the beginning
-    memmove(buffer_.data(), &buffer_[novelty.size()], last * sizeof(T));
+    memmove(buffer_.data(), &buffer_[count], last * sizeof(T));
     
     // Append novelty
-    memcpy(&buffer_[last], novelty.data(), sizeof(T) * novelty.size()); 
+    memcpy(&buffer_[last], novelty, sizeof(T) * count);
 }
 
 template<class T>
@@ -49,19 +55,3 @@ T * CircularBuffer<T>::data()
     return buffer_.data();
 } 
 
-
-template<class T>
-auto CircularBuffer<T>::begin()
-{
-    return buffer_.begin();
-}
-
-template<class T>
-auto CircularBuffer<T>::end()
-{
-    return buffer_.end();
-}
-
-
-
-#endif

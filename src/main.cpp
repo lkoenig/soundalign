@@ -1,5 +1,6 @@
 #include <memory>
 #include <iostream>
+#include <fstream>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -8,53 +9,100 @@
 #include "feature_extractor.h"
 
 
-template<typename T> T min(T a, T b, T c) {
-    if (a < b && a < c) return a;
-    if (b < a && b < c) return b;
-    if (c < a && c < b) return c;
-    assert(0 && "Should never reach that part");
+template<typename T> int argmin(T a, T b, T c) {
+    if (a < b && a < c) return 0;
+    if (b < a && b < c) return 1;
+    if (c < a && c < b) return 2;
     return 0;
 }
 
+struct location_s {
+    size_t x;
+    size_t y;
+};
+
+
+static const float kStepSize = 2.5e-3f;
+static const float kWindowSize = 10e-3f;
 
 int main(int argc, char **argv)
 {
-    std::cout << "Sound Alignement" << std::endl;
-
     auto reference = std::make_shared<SoundFile>("ref.wav");    
-    auto ref_descriptors = std::unique_ptr<PSDFeature>(new PSDFeature(reference, 20e-3f, 10e-3f));
+    auto ref_descriptors = std::unique_ptr<PSDFeature>(new PSDFeature(reference, kWindowSize, kStepSize));
+
     auto degraded = std::make_shared<SoundFile>("ref.wav");
-    auto deg_descriptors = std::unique_ptr<PSDFeature>(new PSDFeature(reference, 20e-3f, 10e-3f));
+    auto deg_descriptors = std::unique_ptr<PSDFeature>(new PSDFeature(degraded, kWindowSize, kStepSize));
 
     Eigen::MatrixXf ref_desc = ref_descriptors->descriptors();
-    Eigen::MatrixXf deg_desc = ref_descriptors->descriptors();
+    Eigen::MatrixXf deg_desc = deg_descriptors->descriptors();
     
     Eigen::VectorXf ref_norm = ref_desc.colwise().squaredNorm();
     Eigen::VectorXf deg_norm = deg_desc.colwise().squaredNorm();
     Eigen::MatrixXf total_norm = ref_norm * deg_norm.transpose();
     total_norm = total_norm.array().sqrt();
 
-    Eigen::MatrixXf correlation = (ref_desc.transpose() * deg_desc).array() / total_norm.array();
+    Eigen::MatrixXf correlation = (ref_desc.transpose() * deg_desc).array() / (total_norm.array() + 1e-3);
 
-    
-    Eigen::MatrixXf gamma = Eigen::MatrixXf::Zero(correlation.rows(), correlation.cols());
-    for (int n = 1; n < correlation.rows(); n++) {
-        gamma(n, 0) = 1e45;
-    }
-    for (int m = 1; m < correlation.cols(); m++) {
-        gamma(0, m) = 1e45;
-    }
-    
-    assert( (gamma(0, 0) == 0.f) );
+    const size_t nRows =  correlation.rows();
+    const size_t nCols =  correlation.cols();
 
-    for (int n = 1; n < correlation.cols(); n++) {
-        for (int m = 1; m < correlation.rows(); m++) {
-            gamma(n,m) = correlation(n, m) + min(gamma(n-1, m), gamma(n-1, m-1), gamma(n, m-1));
+    {
+        std::ofstream ofs ("correlation.txt", std::ofstream::out);
+        ofs << correlation;
+        ofs.close();
+    }
+
+    Eigen::MatrixXf gamma = Eigen::MatrixXf::Zero(nRows, nCols);
+
+    struct location_s *previous_location = (struct location_s *) calloc(sizeof(struct location_s), nRows * nCols );
+
+    for (int n = 0; n < nRows; n++) {
+        gamma(n, 0) = correlation(n,0);
+    }
+    for (int m = 1; m < nCols; m++) {
+        gamma(0, m) = correlation(0,m);
+    }
+    
+    // m row index, n col index
+
+    for (int n = 1; n < nCols; n++) {
+        for (int m = 1; m < nRows; m++) {
+            int previous = argmin(gamma(m, n-1), gamma(m-1, n-1), gamma(m-1, n));
+            switch(previous) {
+            case 0:
+                gamma(n,m) = correlation(m, n) + gamma(m, n-1);
+                previous_location[m * nCols + n].x = m;
+                previous_location[m * nCols + n].y = n-1;
+                break;
+            case 1:
+                gamma(n,m) = correlation(m, n) + gamma(m-1, n-1);
+                previous_location[m * nCols + n].x = m-1;
+                previous_location[m * nCols + n].y = n-1;
+                break;
+            case 2:
+                gamma(n,m) = correlation(m, n) + gamma(m-1, n);
+                previous_location[m * nCols + n].x = m-1;
+                previous_location[m * nCols + n].y = n;
+                break;
+            default:
+                assert(0);
+                break;
+            }
         }
     }
 
     // Traceback
+    int m = nRows - 1;
+    int n = nCols - 1;
+    while(n > 0 || m > 0)
+    {
+        std::cout << m * kStepSize << " " << n * kStepSize << " " << m << " " << n << std::endl;
+        size_t index = m * nCols + n;
+        m = previous_location[index].x;
+        n = previous_location[index].y;
+    }
 
+    free(previous_location);
     return 0;
 }
 

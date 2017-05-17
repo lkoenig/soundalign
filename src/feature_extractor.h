@@ -29,6 +29,7 @@ private:
     kiss_fftr_cfg fft_config_;
     float window_length_ms_;
     float step_ms_;
+    size_t window_length_samples_;
 };
 
 #endif
