@@ -8,11 +8,10 @@
 #include "soundfile.h"
 #include "feature_extractor.h"
 
-
-template<typename T> int argmin(T a, T b, T c) {
-    if (a < b && a < c) return 0;
-    if (b < a && b < c) return 1;
-    if (c < a && c < b) return 2;
+template<typename T> int argmax(T a, T b, T c) {
+    if (a > b && a > c) return 0;
+    if (b > a && b > c) return 1;
+    if (c > a && c > b) return 2;
     return 0;
 }
 
@@ -22,8 +21,8 @@ struct location_s {
 };
 
 
-static const float kStepSize = 2.5e-3f;
-static const float kWindowSize = 10e-3f;
+static const float kStepSize = 5e-3f;
+static const float kWindowSize = 20e-3f;
 
 int main(int argc, char **argv)
 {
@@ -67,16 +66,16 @@ int main(int argc, char **argv)
 
     for (int n = 1; n < nCols; n++) {
         for (int m = 1; m < nRows; m++) {
-            int previous = argmin(gamma(m, n-1), gamma(m-1, n-1), gamma(m-1, n));
+            int previous = argmax(gamma(m-1, n-1), gamma(m, n-1), gamma(m-1, n));
             switch(previous) {
             case 0:
-                gamma(n,m) = correlation(m, n) + gamma(m, n-1);
-                previous_location[m * nCols + n].x = m;
+                gamma(n,m) = correlation(m, n) + gamma(m-1, n-1);
+                previous_location[m * nCols + n].x = m-1;
                 previous_location[m * nCols + n].y = n-1;
                 break;
             case 1:
-                gamma(n,m) = correlation(m, n) + gamma(m-1, n-1);
-                previous_location[m * nCols + n].x = m-1;
+                gamma(n,m) = correlation(m, n) + gamma(m, n-1);
+                previous_location[m * nCols + n].x = m;
                 previous_location[m * nCols + n].y = n-1;
                 break;
             case 2:
@@ -91,16 +90,25 @@ int main(int argc, char **argv)
         }
     }
 
+    {
+        std::ofstream ofs ("gamma.txt", std::ofstream::out);
+        ofs << gamma;
+        ofs.close();
+    }
+
+
     // Traceback
     int m = nRows - 1;
     int n = nCols - 1;
+    std::ofstream path ("path.txt", std::ofstream::out);
     while(n > 0 || m > 0)
     {
-        std::cout << m * kStepSize << " " << n * kStepSize << " " << m << " " << n << std::endl;
+        path << m * kStepSize << " " << n * kStepSize << " " << m << " " << n << std::endl;
         size_t index = m * nCols + n;
         m = previous_location[index].x;
         n = previous_location[index].y;
     }
+    path.close();
 
     free(previous_location);
     return 0;
