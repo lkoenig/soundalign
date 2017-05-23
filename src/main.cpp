@@ -23,13 +23,14 @@ struct location_s {
 
 static const float kStepSize = 5e-3f;
 static const float kWindowSize = 20e-3f;
+static const float kEpsilon = 1e-5;
 
 int main(int argc, char **argv)
 {
     auto reference = std::make_shared<SoundFile>("ref.wav");    
     auto ref_descriptors = std::unique_ptr<PSDFeature>(new PSDFeature(reference, kWindowSize, kStepSize));
 
-    auto degraded = std::make_shared<SoundFile>("ref.wav");
+    auto degraded = std::make_shared<SoundFile>("deg.wav");
     auto deg_descriptors = std::unique_ptr<PSDFeature>(new PSDFeature(degraded, kWindowSize, kStepSize));
 
     Eigen::MatrixXf ref_desc = ref_descriptors->descriptors();
@@ -37,10 +38,10 @@ int main(int argc, char **argv)
     
     Eigen::VectorXf ref_norm = ref_desc.colwise().squaredNorm();
     Eigen::VectorXf deg_norm = deg_desc.colwise().squaredNorm();
-    Eigen::MatrixXf total_norm = ref_norm * deg_norm.transpose();
+    Eigen::MatrixXf total_norm = deg_norm * ref_norm.transpose();
     total_norm = total_norm.array().sqrt();
 
-    Eigen::MatrixXf correlation = (ref_desc.transpose() * deg_desc).array() / (total_norm.array() + 1e-3);
+    Eigen::MatrixXf correlation = (deg_desc.transpose() * ref_desc).array() / (total_norm.array() + kEpsilon);
 
     const size_t nRows =  correlation.rows();
     const size_t nCols =  correlation.cols();
@@ -69,17 +70,17 @@ int main(int argc, char **argv)
             int previous = argmax(gamma(m-1, n-1), gamma(m, n-1), gamma(m-1, n));
             switch(previous) {
             case 0:
-                gamma(n,m) = correlation(m, n) + gamma(m-1, n-1);
+                gamma(m, n) = correlation(m, n) + gamma(m-1, n-1);
                 previous_location[m * nCols + n].x = m-1;
                 previous_location[m * nCols + n].y = n-1;
                 break;
             case 1:
-                gamma(n,m) = correlation(m, n) + gamma(m, n-1);
+                gamma(m, n) = correlation(m, n) + gamma(m, n-1);
                 previous_location[m * nCols + n].x = m;
                 previous_location[m * nCols + n].y = n-1;
                 break;
             case 2:
-                gamma(n,m) = correlation(m, n) + gamma(m-1, n);
+                gamma(m, n) = correlation(m, n) + gamma(m-1, n);
                 previous_location[m * nCols + n].x = m-1;
                 previous_location[m * nCols + n].y = n;
                 break;
