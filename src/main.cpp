@@ -1,6 +1,7 @@
 #include <memory>
 #include <iostream>
 #include <fstream>
+#include <utility> // for pair
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -25,23 +26,15 @@ static const float kStepSize = 5e-3f;
 static const float kWindowSize = 20e-3f;
 static const float kEpsilon = 1e-5;
 
-int main(int argc, char **argv)
-{
-    auto reference = std::make_shared<SoundFile>("ref.wav");    
-    auto ref_descriptors = std::unique_ptr<PSDFeature>(new PSDFeature(reference, kWindowSize, kStepSize));
+std::vector< std::pair<size_t, size_t> > align(const Eigen::MatrixXf &ref, const Eigen::MatrixXf &deg) {
+    std::vector< std::pair<size_t, size_t> > path;
 
-    auto degraded = std::make_shared<SoundFile>("deg.wav");
-    auto deg_descriptors = std::unique_ptr<PSDFeature>(new PSDFeature(degraded, kWindowSize, kStepSize));
-
-    Eigen::MatrixXf ref_desc = ref_descriptors->descriptors();
-    Eigen::MatrixXf deg_desc = deg_descriptors->descriptors();
-    
-    Eigen::VectorXf ref_norm = ref_desc.colwise().squaredNorm();
-    Eigen::VectorXf deg_norm = deg_desc.colwise().squaredNorm();
+    Eigen::VectorXf ref_norm = ref.colwise().squaredNorm();
+    Eigen::VectorXf deg_norm = deg.colwise().squaredNorm();
     Eigen::MatrixXf total_norm = deg_norm * ref_norm.transpose();
     total_norm = total_norm.array().sqrt();
 
-    Eigen::MatrixXf correlation = (deg_desc.transpose() * ref_desc).array() / (total_norm.array() + kEpsilon);
+    Eigen::MatrixXf correlation = (deg.transpose() * ref).array() / (total_norm.array() + kEpsilon);
 
     const size_t nRows =  correlation.rows();
     const size_t nCols =  correlation.cols();
@@ -56,17 +49,17 @@ int main(int argc, char **argv)
 
     struct location_s *previous_location = (struct location_s *) calloc(sizeof(struct location_s), nRows * nCols );
 
-    for (int n = 0; n < nRows; n++) {
+    for (size_t n = 0; n < nRows; n++) {
         gamma(n, 0) = correlation(n,0);
     }
-    for (int m = 1; m < nCols; m++) {
+    for (size_t m = 1; m < nCols; m++) {
         gamma(0, m) = correlation(0,m);
     }
-    
+
     // m row index, n col index
 
-    for (int n = 1; n < nCols; n++) {
-        for (int m = 1; m < nRows; m++) {
+    for (size_t n = 1; n < nCols; n++) {
+        for (size_t m = 1; m < nRows; m++) {
             int previous = argmax(gamma(m-1, n-1), gamma(m, n-1), gamma(m-1, n));
             switch(previous) {
             case 0:
@@ -91,27 +84,50 @@ int main(int argc, char **argv)
         }
     }
 
-    {
-        std::ofstream ofs ("gamma.txt", std::ofstream::out);
-        ofs << gamma;
-        ofs.close();
-    }
-
-
     // Traceback
     int m = nRows - 1;
     int n = nCols - 1;
-    std::ofstream path ("path.txt", std::ofstream::out);
+
     while(n > 0 || m > 0)
     {
-        path << m * kStepSize << " " << n * kStepSize << " " << m << " " << n << std::endl;
+        path.push_back(std::make_pair(m, n));
         size_t index = m * nCols + n;
         m = previous_location[index].x;
         n = previous_location[index].y;
     }
-    path.close();
+    path.push_back(std::make_pair(m, n));
 
     free(previous_location);
+    return path;
+}
+
+int main(int argc, char **argv)
+{
+    if(argc < 3) {
+        std::cerr << "Not enough parameter" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " reference_file degraded_file"  << std::endl;
+        return 1;
+    }
+
+    auto reference = std::make_shared<SoundFile>(argv[1]);
+    auto ref_descriptors = std::unique_ptr<PSDFeature>(new PSDFeature(reference, kWindowSize, kStepSize));
+
+    auto degraded = std::make_shared<SoundFile>(argv[2]);
+    auto deg_descriptors = std::unique_ptr<PSDFeature>(new PSDFeature(degraded, kWindowSize, kStepSize));
+
+    Eigen::MatrixXf ref_desc = ref_descriptors->descriptors();
+    Eigen::MatrixXf deg_desc = deg_descriptors->descriptors();
+    
+    auto path = align(ref_desc, deg_desc);
+
+    {
+        std::ofstream path_file("path.txt", std::ofstream::out);
+        for(std::pair<size_t, size_t> &correspondance: path)
+        {
+            path_file << correspondance.first * kStepSize << " " << correspondance.second * kStepSize << " " << correspondance.first << " " << correspondance.second << std::endl;
+        }
+    }
+
     return 0;
 }
 
