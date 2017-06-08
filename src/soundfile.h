@@ -13,12 +13,16 @@ class SoundFile
 public:
     SoundFile(std::string filename);
 
-    int getSampleRate() {
+    int getSampleRate() const {
         return file_info_.samplerate;
     }
 
-    uint64_t getNumberOfSamples() {
+    uint64_t getNumberOfSamples() const {
         return file_info_.frames;
+    }
+
+    size_t getNumberOfChannel() const {
+        return (size_t) file_info_.channels;
     }
 
     /**

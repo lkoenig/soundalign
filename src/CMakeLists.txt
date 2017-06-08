@@ -1,6 +1,8 @@
 
 set(SOUNDALIGN_SRC
   main.cpp
+  align.cpp
+  align.h
   soundfile.cpp
   soundfile.h
   circular_buffer.h
