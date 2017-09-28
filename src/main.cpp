@@ -24,6 +24,8 @@ int main(int argc, char **argv)
     if(argc < 3) {
         std::cerr << "Not enough parameter" << std::endl;
         std::cerr << "Usage: " << argv[0] << " reference_file degraded_file"  << std::endl;
+        std::cerr << "       " << argv[0] << " reference_file degraded_file output_file"  << std::endl;
+
         return 1;
     }
 
@@ -50,10 +52,21 @@ int main(int argc, char **argv)
     auto path = align(ref_desc, deg_desc);
 
     {
-        std::ofstream path_file("path.txt", std::ofstream::out);
+        std::ofstream path_file;
+        std::streambuf *output_buffer;
+        if(argc > 3) {
+            path_file.open(argv[3], std::ofstream::out);
+            output_buffer = path_file.rdbuf();
+        } else {
+            output_buffer = std::cout.rdbuf();
+        }
+        std::ostream output(output_buffer);
+
+        output << "# reference_time(s) degraded_time(s) ref_index deg_index" << std::endl;
+
         for(std::pair<size_t, size_t> &correspondance: path)
         {
-            path_file << correspondance.first * kStepSize << " " << correspondance.second * kStepSize << " " << correspondance.first << " " << correspondance.second << std::endl;
+            output << correspondance.first * kStepSize << " " << correspondance.second * kStepSize << " " << correspondance.first << " " << correspondance.second << std::endl;
         }
     }
 

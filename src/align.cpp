@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#if DEBUG
+#if DEBUG_DUMP_DATA
 #include <fstream>
 #endif
 
@@ -34,7 +34,7 @@ std::vector< std::pair<size_t, size_t> > align(const Eigen::MatrixXf &ref, const
     const size_t nRows =  correlation.rows();
     const size_t nCols =  correlation.cols();
 
-#if DEBUG
+#if DEBUG_DUMP_DATA
     {
         std::ofstream ofs ("correlation.txt", std::ofstream::out);
         ofs << correlation;
@@ -45,6 +45,7 @@ std::vector< std::pair<size_t, size_t> > align(const Eigen::MatrixXf &ref, const
     Eigen::MatrixXf gamma = Eigen::MatrixXf::Zero(nRows, nCols);
 
     std::unique_ptr<location_s[]> previous_location(new location_s[nRows * nCols]);
+    memset(previous_location.get(), 0, sizeof(previous_location[0]) * nRows * nCols);
 
     for (size_t n = 0; n < nRows; n++) {
         gamma(n, 0) = correlation(n,0);

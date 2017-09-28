@@ -7,7 +7,9 @@ if(CMAKE_BUILD_TYPE MATCHES "Release")
 else()
     set(RELEASE_OFF ON)
 endif()
+
 option(USE_ADDRESS_SANITIZER "Using Address sanitizer" ${RELEASE_OFF})
+option(DEBUG_DUMP_DATA "Dump debug data" OFF)
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
@@ -20,6 +22,10 @@ find_package(Eigen3 REQUIRED)
 find_package(LibSndFile REQUIRED)
 
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
+if(DEBUG_DUMP_DATA)
+    add_definitions(-DDEBUG_DUMP_DATA=1)
+endif(DEBUG_DUMP_DATA)
 
 set(COMMON_FLAGS "")
 
